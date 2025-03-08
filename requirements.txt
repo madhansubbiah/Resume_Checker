@@ -1,0 +1,6 @@
+streamlit
+chardet
+PyMuPDF
+numpy
+scikit-learn
+reportlab
