@@ -16,6 +16,9 @@ def main():
         job_description = load_text_from_file(job_description_file)
 
     if job_description:
+        # Add a slider for setting the score threshold as a percentage (1 to 100)
+        threshold_score = st.slider("Set a match score threshold (%):", min_value=1, max_value=100, value=40, step=1)
+
         for resume_file in resume_files:
             if resume_file is not None:
                 resume = load_text_from_file(resume_file)
@@ -24,12 +27,17 @@ def main():
                 edited_resume = st.text_area("Edit Your Resume:", resume, height=300, key=resume_file.name)
 
                 score = calculate_match_score(edited_resume, job_description)
-                st.progress(score / 1.0)
+                st.progress(score)  # Change this to score since it is already in [0, 1]
                 
-                if score > 0.4:
-                    st.success(f"Good match! Score: {score:.2f}")
+                # Convert threshold score from percentage to a decimal for comparison
+                threshold_score_decimal = threshold_score / 100.0
+
+                # Display the scores in percentage format
+                displayed_score = score * 100
+                if displayed_score >= threshold_score:
+                    st.success(f"Good match! Score: {displayed_score:.2f}%")
                 else:
-                    st.warning(f"Not a good match. Score is below 0.4. Your score: {score:.2f}")
+                    st.warning(f"Not a good match. Score is below the threshold of {threshold_score:.2f}%. Your score: {displayed_score:.2f}%")
 
                 recommendations = generate_recommendations(edited_resume, job_description)
                 recommendations_input = st.text_area("Recommendations to improve your resume:", recommendations, key=f"rec_{resume_file.name}")
@@ -37,10 +45,13 @@ def main():
                 if st.button(f"Recalculate Match Score for {resume_file.name}"):
                     updated_resume = edited_resume + "\n" + recommendations_input
                     updated_score = calculate_match_score(updated_resume, job_description)
-                    st.metric(label="Updated Match Score", value=f"{updated_score:.2f}")
-                    st.progress(updated_score / 1.0)
-                    if updated_score > 0.4:
-                        st.success(f"Good match! Score: {updated_score:.2f}")
+                    displayed_updated_score = updated_score * 100
+                    st.metric(label="Updated Match Score", value=f"{displayed_updated_score:.2f}%")
+                    st.progress(updated_score)  # This should reflect the original score (0 to 1)
+
+                    # Use the converted threshold again
+                    if updated_score >= threshold_score_decimal:
+                        st.success(f"Good match! Score: {displayed_updated_score:.2f}%")
 
                         pdf_output = create_pdf(updated_resume)
                         original_filename = resume_file.name
@@ -50,7 +61,7 @@ def main():
                         st.download_button("Download Updated Resume", data=pdf_output, 
                                            file_name=f'updated_{original_filename}.pdf', mime='application/pdf')
                     else:
-                        st.warning(f"Not a good match. Score is below 0.4. Your score: {updated_score:.2f}")
+                        st.warning(f"Not a good match. Score is below the threshold of {threshold_score:.2f}%. Your score: {displayed_updated_score:.2f}%")
 
 # Entry point of the program when run directly
 if __name__ == "__main__":
